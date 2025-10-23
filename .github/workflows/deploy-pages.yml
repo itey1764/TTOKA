@@ -1,0 +1,46 @@
+name: Archive & Deploy (all images local)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 6 * * 1"   # weekly Monday 06:00 UTC
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 lxml
+
+      - name: Run archiver (make ALL images local)
+        run: |
+          python archive_site.py \
+            --base https://ttoka.org \
+            --out site \
+            --respect-robots \
+            --mirror-externals-all \
+            --crawl-fallback \
+            --max-crawl 1
+
+      - name: Sanity check: no remote image URLs left
+        run: |
+          ! grep -RnoE "https?://[^\"')>]+\\.(png|jpe?g|webp|gif|svg|avif|ico)(\\?.*)?$" site || exit 1
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - uses: actions/deploy-pages@v4
