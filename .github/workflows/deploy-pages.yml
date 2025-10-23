@@ -32,10 +32,30 @@ jobs:
           python archive_site.py \
             --base https://ttoka.org \
             --out site \
-            --respect-robots \
             --mirror-externals-all \
             --crawl-fallback \
-            --max-crawl 1
+            --max-crawl 2 \
+            --delay 0.25 \
+            --timeout 45 \
+            --respect-robots
+
+      - name: Show what was built
+        run: |
+          echo "==== file count ===="
+          find site -type f | wc -l || true
+          echo "==== top-level ===="
+          ls -la site || true
+          echo "==== sample tree (first 200) ===="
+          find site -maxdepth 3 -type f | head -n 200 || true
+
+      - name: Fail if no HTML produced
+        run: |
+          set -e
+          html_count=$(find site -type f -iname '*.html' | wc -l | tr -d ' ')
+          if [ "$html_count" -lt 1 ]; then
+            echo "No HTML files in site/. Archiver produced nothing. Failing early."
+            exit 1
+          fi
 
       - name: Ensure site/index.html exists
         run: |
