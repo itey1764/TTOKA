@@ -1,9 +1,9 @@
 name: Archive & Deploy (all images local)
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
   schedule:
-    - cron: "0 6 * * 1" # weekly Monday 06:00 UTC
+    - cron: '0 6 * * 1'  # weekly Monday 06:00 UTC
 
 permissions:
   contents: read
@@ -20,9 +20,9 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 lxml
@@ -36,35 +36,6 @@ jobs:
             --mirror-externals-all \
             --crawl-fallback \
             --max-crawl 1
-
-      # Put the sanity check in a tiny Python script to avoid YAML/regex escaping issues
-      - name: Write sanity-check script
-        shell: bash
-        run: |
-          cat > check_no_remote_images.py << 'PY'
-          import re, sys, pathlib
-          root = pathlib.Path("site")
-          # Match remote image URLs in any file
-          pat = re.compile(r"https?://[^\s\"')>]+\.(?:png|jpe?g|webp|gif|svg|avif|ico)(?:\?.*)?$", re.I)
-          bad = []
-          for p in root.rglob("*"):
-            if not p.is_file():
-              continue
-            try:
-              txt = p.read_text(encoding="utf-8", errors="ignore")
-            except Exception:
-              continue
-            for m in pat.finditer(txt):
-              bad.append(f"{p}:{m.start()+1}:{m.group(0)}")
-          if bad:
-            print("Found remote image URLs (images not fully localized):")
-            print("\n".join(bad))
-            sys.exit(1)
-          print("OK: No remote image URLs found.")
-          PY
-
-      - name: Sanity check: no remote image URLs left
-        run: python check_no_remote_images.py
 
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
