@@ -36,8 +36,17 @@ jobs:
             --max-crawl 1
 
       - name: Sanity check: no remote image URLs left
+        shell: bash
         run: |
-          ! grep -RnoE "https?://[^\"')>]+\\.(png|jpe?g|webp|gif|svg|avif|ico)(\\?.*)?$" site || exit 1
+          set -euo pipefail
+          matches=$(grep -RnoE 'https?://[^"'\''\)>\s]+\.(png|jpe?g|webp|gif|svg|avif|ico)(\?.*)?$' site || true)
+          if [ -n "$matches" ]; then
+            echo "Found remote image URLs (images not fully localized):"
+            echo "$matches"
+            exit 1
+          else
+            echo "OK: No remote image URLs found."
+          fi
 
       - uses: actions/upload-pages-artifact@v3
         with:
